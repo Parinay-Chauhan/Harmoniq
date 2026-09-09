@@ -9,7 +9,7 @@ const authCallback = async (req, res) => {
         const { id, firstName, lastName = "", imageUrl } = req.body;
         const { userId } = getAuth(req);
 
-        if (!id || id !== userId || !firstName || !imageUrl) {
+        if (!userId || !firstName || !imageUrl) {
             console.error("Auth callback validation failed", {
                 hasId: Boolean(id),
                 matchesSession: id === userId,
@@ -23,15 +23,18 @@ const authCallback = async (req, res) => {
         }
 
         console.log("Clerk ID:", id);
+        if (id !== userId) {
+            console.warn("Ignoring mismatched client user ID and using the authenticated session ID");
+        }
 
         // Check if user exists
-        const existingUser = await User.findOne({ clerkId: id });
+        const existingUser = await User.findOne({ clerkId: userId });
 
         console.log("Existing user:", existingUser);
 
         if (!existingUser) {
             const newUser = await User.create({
-                clerkId: id,
+                clerkId: userId,
                 fullName: `${firstName} ${lastName}`.trim(),
                 imageUrl,
             });
